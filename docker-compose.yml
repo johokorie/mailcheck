@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: reacherdb
+      POSTGRES_USER: reacher
+      POSTGRES_PASSWORD: password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  backend:
+    build: .
+    ports:
+      - '8080:8080'
+    environment:
+      RCH__HTTP_HOST: 0.0.0.0
+      RCH__STORAGE__TYPE: postgres
+      RCH__STORAGE__DB_URL: postgresql://reacher:password@postgres:5432/reacherdb
+      RCH__WORKER__ENABLE: 'true'
+      RCH__WORKER__RABBITMQ__URL: amqp://guest:guest@rabbitmq:5672
+      LOG_LEVEL: info
+    depends_on:
+      - postgres
+      - rabbitmq
+    volumes:
+      - ./src:/app/src
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
